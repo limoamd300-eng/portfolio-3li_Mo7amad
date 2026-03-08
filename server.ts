@@ -15,16 +15,42 @@ async function startServer() {
     res.json({ status: "ok", system: "Ali Omar Command Center" });
   });
 
+  // Request logger for debugging
+  app.use((req, res, next) => {
+    console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+    next();
+  });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { 
         middlewareMode: true,
-        hmr: process.env.DISABLE_HMR !== 'true'
+        hmr: process.env.DISABLE_HMR !== 'true',
+        watch: {
+          usePolling: true,
+          interval: 100
+        }
       },
       appType: "spa",
     });
     app.use(vite.middlewares);
+    
+    // Explicitly serve index.html for all paths in dev if Vite middleware doesn't catch it
+    app.get('*', async (req, res, next) => {
+      // Skip API routes
+      if (req.url.startsWith('/api/')) {
+        return next();
+      }
+      
+      try {
+        const html = await vite.transformIndexHtml(req.url, await (await import('fs/promises')).readFile(path.join(__dirname, 'index.html'), 'utf-8'));
+        res.status(200).set({ 'Content-Type': 'text/html' }).end(html);
+      } catch (e) {
+        vite.ssrFixStacktrace(e as Error);
+        next(e);
+      }
+    });
   } else {
     // Serve static files in production
     app.use(express.static(path.join(__dirname, "dist")));
