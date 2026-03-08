@@ -1,0 +1,15 @@
+{
+  "name": "Ali Omar Portfolio",
+  "short_name": "Ali Omar",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#32FF7E",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
