@@ -2,6 +2,7 @@ import express from "express";
 import { createServer as createViteServer } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
+import { existsSync } from "fs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -9,6 +10,7 @@ const __dirname = path.dirname(__filename);
 async function startServer() {
   const app = express();
   const PORT = 3000;
+  console.log(`SYSTEM: Starting server in ${process.env.NODE_ENV || 'development'} mode`);
 
   // API routes can go here
   app.get("/api/health", (req, res) => {
@@ -38,10 +40,19 @@ async function startServer() {
     app.use(vite.middlewares);
   } else {
     // Serve static files in production
-    app.use(express.static(path.join(__dirname, "dist")));
-    app.get("*", (req, res) => {
-      res.sendFile(path.join(__dirname, "dist", "index.html"));
-    });
+    const distPath = path.join(__dirname, "dist");
+    if (existsSync(distPath)) {
+      app.use(express.static(distPath));
+      app.get("*", (req, res) => {
+        res.sendFile(path.join(distPath, "index.html"));
+      });
+    } else {
+      console.warn("WARNING: Production mode active but 'dist' directory not found. Falling back to dev-like behavior or error.");
+      // In a real app, you'd probably want to error out or serve a friendly message
+      app.get("*", (req, res) => {
+        res.status(500).send("Production build missing. Please run 'npm run build'.");
+      });
+    }
   }
 
   app.listen(PORT, "0.0.0.0", () => {
